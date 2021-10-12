@@ -10,18 +10,26 @@
     "Other"
   ],
   "activationEvents": [
-    "onView:package-explorer",
-    "onCommand:group-tabs.helloWorld"
+    "onView:groups-explorer",
+    "onCommand:fileGroups.addEntry"
   ],
   "main": "./dist/extension.js",
   "contributes": {
     "commands": [
       {
-        "command": "group-tabs.helloWorld",
+        "command": "fileGroups.helloWorld",
         "title": "Hello World"
       },
       {
-        "command": "nodeDependencies.refreshEntry",
+        "command": "fileGroups.say",
+        "title": "cowsay say"
+      },
+      {
+        "command": "fileGroups.save",
+        "title": "Save all tabs"
+      },
+      {
+        "command": "fileGroups.refreshEntry",
         "title": "Refresh",
         "icon": {
           "light": "resources/dark/refresh.svg",
@@ -29,11 +37,11 @@
         }
       },
       {
-        "command": "nodeDependencies.addEntry",
+        "command": "fileGroups.addEntry",
         "title": "Add"
       },
       {
-        "command": "nodeDependencies.editEntry",
+        "command": "fileGroups.editEntry",
         "title": "Edit",
         "icon": {
           "light": "resources/light/edit.svg",
@@ -41,58 +49,57 @@
         }
       },
       {
-        "command": "nodeDependencies.deleteEntry",
+        "command": "fileGroups.deleteEntry",
         "title": "Delete"
       }
     ],
     "menus": {
       "view/title": [
         {
-          "command": "nodeDependencies.refreshEntry",
-          "when": "view == nodeDependencies",
+          "command": "fileGroups.refreshEntry",
+          "when": "view == fileGroups",
           "group": "navigation"
         },
         {
-          "command": "nodeDependencies.addEntry",
-          "when": "view == nodeDependencies"
+          "command": "fileGroups.addEntry",
+          "when": "view == fileGroups"
         }
       ],
       "view/item/context": [
         {
-          "command": "nodeDependencies.editEntry",
-          "when": "view == nodeDependencies && viewItem == dependency",
+          "command": "fileGroups.editEntry",
+          "when": "view == fileGroups && viewItem == dependency",
           "group": "inline"
         },
         {
-          "command": "nodeDependencies.deleteEntry",
-          "when": "view == nodeDependencies && viewItem == dependency"
+          "command": "fileGroups.deleteEntry",
+          "when": "view == fileGroups && viewItem == dependency"
         }
       ]
     },
     "viewsContainers": {
       "activitybar": [
         {
-          "id": "package-explorer",
-          "title": "Package Explorer",
+          "id": "groups-explorer",
+          "title": "Groups Explorer",
           "icon": "resources/tab.svg"
         }
       ]
     },
     "views": {
-      "package-explorer": [
+      "groups-explorer": [
         {
-          "id": "nodeDependencies",
-          "name": "Node Dependencies",
+          "id": "fileGroups",
+          "name": "Groups",
           "icon": "resources/tab.svg",
-          "contextualTitle": "Package Explorer"
+          "contextualTitle": "Groups Explorer"
         }
       ]
     },
     "viewsWelcome": [
       {
-        "view": "package-explorer",
-        "contents": "In order to use git features, you can open a folder containing a git repository or clone from a URL.\n[Open Folder](command:vscode.openFolder)\n[Clone Repository](command:git.clone)\nTo learn more about how to use git and source control in VS Code [read our docs](https://aka.ms/vscode-scm).",
-        "when": "config.git.enabled && git.state == initialized && workbenchState == empty"
+        "view": "fileGroups",
+        "contents": "No groups found in this workspace.\n[Add open files](command:fileGroups.addEntry)"
       }
     ]
   },

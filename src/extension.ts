@@ -11,28 +11,41 @@ export function activate(context: vscode.ExtensionContext) {
   // This line of code will only be executed once when your extension is activated
   console.log('Congratulations, your extension "group-tabs" is now active!');
 
-  vscode.window.registerTreeDataProvider(
-    "nodeDependencies",
-    new TabsGroupsDataProvider(vscode.workspace.rootPath!)
-  );
   /* vscode.window.registerTreeDataProvider(
-    "nodeDependencies",
-    new NodeDependenciesProvider(vscode.workspace.rootPath!)
+    "fileGroups",
+    new TabsGroupsDataProvider(vscode.workspace.rootPath!)
   ); */
 
-  // The command has been defined in the package.json file
-  // Now provide the implementation of the command with registerCommand
-  // The commandId parameter must match the command field in package.json
-  let disposable = vscode.commands.registerCommand(
-    "group-tabs.helloWorld",
-    () => {
+  const disposables = [
+    vscode.commands.registerCommand("group-tabs.say", async () => {
+      let what = await vscode.window.showInputBox({ placeHolder: "cow say?" });
+      if (what) {
+        let uri = vscode.Uri.parse("cowsay:" + what);
+        let doc = await vscode.workspace.openTextDocument(uri); // calls back into the provider
+        await vscode.window.showTextDocument(doc, { preview: false });
+      }
+    }),
+    vscode.commands.registerCommand("group-tabs.helloWorld", () => {
       // The code you place here will be executed every time your command is executed
       // Display a message box to the user
-      vscode.window.showInformationMessage("Hello World from group tabs!");
-    }
-  );
+      vscode.window.showInformationMessage("Hello World!");
+    }),
 
-  context.subscriptions.push(disposable);
+    vscode.commands.registerCommand("fileGroups.addEntry", async () => {
+      let what = await vscode.window.showInputBox({
+        placeHolder: "Nombre del grupo",
+      });
+      vscode.window.showInformationMessage(`${what}`);
+
+      vscode.window.registerTreeDataProvider(
+        "fileGroups",
+        new TabsGroupsDataProvider(vscode.workspace.rootPath!)
+      );
+    }),
+  ];
+
+  //context.subscriptions.push(disposable);
+  context.subscriptions.concat(disposables);
 }
 
 // this method is called when your extension is deactivated

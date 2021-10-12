@@ -36,9 +36,6 @@ export class TabsGroupsDataProvider
     let currentTab: Tab = createTab(active);
     // arreglo de grupos
     const openEditors: vscode.TextEditor[] = [];
-
-    await ls();
-
     //cuando se expande un elemento
     if (element) {
       console.log({ element });
@@ -111,44 +108,13 @@ class Dependency extends vscode.TreeItem {
     this.id = id;
     this.tooltip = `${this.tooltip}`;
     this.command = {
-      command: "vscode.openFile",
+      command: "group-tabs.say",
       title: "",
-      arguments: [this.tooltip],
     };
   }
 
   iconPath = {
-    light: path.join(
-      __filename,
-      "..",
-      "..",
-      "resources",
-      "light",
-      "dependency.svg"
-    ),
-    dark: path.join(
-      __filename,
-      "..",
-      "..",
-      "resources",
-      "dark",
-      "dependency.svg"
-    ),
+    light: path.join(__filename, "..", "..", "resources", "light", "tab.svg"),
+    dark: path.join(__filename, "..", "..", "resources", "dark", "tab.svg"),
   };
-}
-
-async function ls() {
-  let script = exec("git status");
-  // what to do for data coming from the standard out
-  script.stdout.on("data", function (data: any) {
-    console.log(data.toString());
-  });
-  // what to do with data coming from the standard error
-  script.stderr.on("data", function (data: any) {
-    console.log(data.toString());
-  });
-  // what to do when the command is done
-  script.on("exit", function (code: any) {
-    console.log("program ended with code: " + code);
-  });
 }
