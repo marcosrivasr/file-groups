@@ -2,7 +2,7 @@
 // Import the module and reference it with the alias vscode in your code below
 import * as vscode from "vscode";
 import { NodeDependenciesProvider } from "./dataprovider";
-import { GroupsDataProvider } from "./groupsDataProvider";
+import { GroupsDataProvider, TabItem } from "./groupsDataProvider";
 import { commands } from "./constants/commands";
 
 const tabsGroups = new GroupsDataProvider(vscode.workspace.rootPath!);
@@ -52,7 +52,9 @@ export function activate(context: vscode.ExtensionContext) {
       }
     }),
 
-    vscode.commands.registerCommand(commands.click, (item) => {}),
+    vscode.commands.registerCommand(commands.click, (item: TabItem) => {
+      vscode.window.showInformationMessage(`Click al elemento ${item.label}`);
+    }),
   ];
 
   //context.subscriptions.push(disposable);
