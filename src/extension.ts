@@ -2,7 +2,10 @@
 // Import the module and reference it with the alias vscode in your code below
 import * as vscode from "vscode";
 import { NodeDependenciesProvider } from "./dataprovider";
-import { TabsGroupsDataProvider } from "./tabsGroupsDataProvider";
+import { GroupsDataProvider } from "./groupsDataProvider";
+import { commands } from "./constants/commands";
+
+const tabsGroups = new GroupsDataProvider(vscode.workspace.rootPath!);
 
 // this method is called when your extension is activated
 // your extension is activated the very first time the command is executed
@@ -15,6 +18,8 @@ export function activate(context: vscode.ExtensionContext) {
     "fileGroups",
     new TabsGroupsDataProvider(vscode.workspace.rootPath!)
   ); */
+
+  vscode.window.registerTreeDataProvider("fileGroups", tabsGroups);
 
   const disposables = [
     vscode.commands.registerCommand("group-tabs.say", async () => {
@@ -31,17 +36,23 @@ export function activate(context: vscode.ExtensionContext) {
       vscode.window.showInformationMessage("Hello World!");
     }),
 
-    vscode.commands.registerCommand("fileGroups.addEntry", async () => {
-      let what = await vscode.window.showInputBox({
-        placeHolder: "Nombre del grupo",
+    vscode.commands.registerCommand(commands.add, async () => {
+      let name = await vscode.window.showInputBox({
+        placeHolder: "Name of the group",
       });
-      vscode.window.showInformationMessage(`${what}`);
-
-      vscode.window.registerTreeDataProvider(
-        "fileGroups",
-        new TabsGroupsDataProvider(vscode.workspace.rootPath!)
-      );
+      if (name) {
+        if (tabsGroups.existsGroup(name)) {
+          vscode.window.showInformationMessage(`Ya existe el grupo ${name}`);
+        } else {
+          tabsGroups.addGroup(name);
+          vscode.window.showInformationMessage(`Se añadió el grupo ${name}`);
+        }
+      } else {
+        return;
+      }
     }),
+
+    vscode.commands.registerCommand(commands.click, (item) => {}),
   ];
 
   //context.subscriptions.push(disposable);

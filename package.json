@@ -10,8 +10,7 @@
     "Other"
   ],
   "activationEvents": [
-    "onView:groups-explorer",
-    "onCommand:fileGroups.addEntry"
+    "*"
   ],
   "main": "./dist/extension.js",
   "contributes": {
@@ -38,14 +37,14 @@
       },
       {
         "command": "fileGroups.addEntry",
-        "title": "Add"
+        "title": "Add current files"
       },
       {
         "command": "fileGroups.editEntry",
         "title": "Edit",
         "icon": {
-          "light": "resources/light/edit.svg",
-          "dark": "resources/dark/edit.svg"
+          "light": "resources/dark/edit.svg",
+          "dark": "resources/light/edit.svg"
         }
       },
       {
@@ -68,12 +67,12 @@
       "view/item/context": [
         {
           "command": "fileGroups.editEntry",
-          "when": "view == fileGroups && viewItem == dependency",
+          "when": "view == fileGroups && viewItem == tab",
           "group": "inline"
         },
         {
           "command": "fileGroups.deleteEntry",
-          "when": "view == fileGroups && viewItem == dependency"
+          "when": "view == fileGroups && viewItem == tab"
         }
       ]
     },

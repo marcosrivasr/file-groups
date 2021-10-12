@@ -6,20 +6,28 @@ const util = require("util");
 let exec = require("child_process").exec;
 
 export class TabsGroupsDataProvider
-  implements vscode.TreeDataProvider<Dependency>
+  implements vscode.TreeDataProvider<TreeItem>
 {
   groups: number[] = [];
   tabs: Tab[] = [];
 
   constructor(private workspaceRoot: string) {}
 
-  getTreeItem(element: Dependency): vscode.TreeItem {
+  onDidChangeTreeData?:
+    | vscode.Event<void | TreeItem | null | undefined>
+    | undefined;
+
+  getChildren(element?: TreeItem): vscode.ProviderResult<TreeItem[]> {
+    return Promise.resolve([]);
+  }
+
+  getTreeItem(element: TreeItem): vscode.TreeItem {
     return element;
   }
 
-  async getChildren(
-    element?: Dependency
-  ): Promise<Dependency[] | null | undefined> {
+  async getChildren2(
+    element?: TreeItem
+  ): Promise<TreeItem[] | null | undefined> {
     console.log("workspaceRoot", this.workspaceRoot);
 
     if (!this.workspaceRoot) {
@@ -43,7 +51,7 @@ export class TabsGroupsDataProvider
       const items = this.tabs
         .filter((tab) => tab.group === id)
         .map((tab) => {
-          return new Dependency(
+          return new TreeItem(
             tab.id,
             path.basename(tab.textEditor.document.fileName),
             tab.textEditor.document.fileName,
@@ -68,12 +76,12 @@ export class TabsGroupsDataProvider
         if (found) break;
       }
 
-      const res: Dependency[] = [];
+      const res: TreeItem[] = [];
       this.groups = this.tabs.map((tab) => parseInt(tab.id));
       this.groups = [...new Set(this.groups)];
 
       this.groups.forEach((group) => {
-        const d = new Dependency(
+        const d = new TreeItem(
           group.toString(),
           `Group ${group}`,
           `Group ${group}`,
@@ -84,7 +92,7 @@ export class TabsGroupsDataProvider
       });
 
       /* for (let i = 0; i < openEditors.length; i++) {
-        const d = new Dependency(
+        const d = new TreeItem(
           path.basename(openEditors[i].document.fileName),
           openEditors[i].document.fileName,
           vscode.TreeItemCollapsibleState.Collapsed
@@ -97,7 +105,7 @@ export class TabsGroupsDataProvider
   }
 }
 
-class Dependency extends vscode.TreeItem {
+class TreeItem extends vscode.TreeItem {
   constructor(
     public readonly id: string,
     public readonly label: string,
