@@ -3,8 +3,7 @@ import * as fs from "fs";
 import * as path from "path";
 import { wait, Tab, createTab } from "./util";
 import { basename } from "path";
-const util = require("util");
-let exec = require("child_process").exec;
+import { commands } from "./constants/commands";
 
 enum TreeItemType {
   GroupItem,
@@ -14,8 +13,25 @@ enum TreeItemType {
 
 export class GroupsDataProvider implements vscode.TreeDataProvider<TreeItem> {
   groups: GroupItem[] = [];
+  currentGroup?: GroupItem = undefined;
+  context: vscode.ExtensionContext | null;
 
-  constructor(private workspaceRoot: string) {}
+  constructor(private workspaceRoot: string, context: vscode.ExtensionContext) {
+    this.context = context;
+
+    if (this.context.workspaceState.get("groups")) {
+      const base64 = <string>this.context.workspaceState.get("groups");
+      const decoded = Buffer.from(base64, "base64").toString("ascii");
+      try {
+        // Try to use the decoded base64
+        this.groups = JSON.parse(decoded);
+      } catch {
+        console.log("Was not able to parse decoded Base64 as Json");
+      } // Base64 decoded was not valid
+    } else {
+      console.log("No hay nada guardado");
+    }
+  }
 
   private _onDidChangeTreeData = new vscode.EventEmitter<
     TreeItem | undefined
@@ -27,48 +43,59 @@ export class GroupsDataProvider implements vscode.TreeDataProvider<TreeItem> {
   ): Promise<TreeItem[] | null | undefined> {
     if (element) {
       if (element.type === TreeItemType.GroupItem) {
-        /**
-         * 1. obtener los elementos y acomodarlos de acuerdo a su columna
-         */
-        let res: ColumnItem[] = [];
-        let columns: ColumnItem[];
-        try {
-          columns = await (element as GroupItem).create();
-        } catch (error) {
-          return Promise.resolve([]);
-        }
-        res.push(...columns);
-        /*
-        for (let i = 0; i < 10; i++) {
-          const name = `${element.label}_${i}`;
-          res.push(new ColumnItem(name, name, name));
-        } */
-        return Promise.resolve(res);
+        return Promise.resolve((element as GroupItem).columns);
       } else if (element.type === TreeItemType.ColumnItem) {
         return Promise.resolve((element as ColumnItem).tabs);
       }
     } else {
-      console.log(this.groups);
       return Promise.resolve(this.groups);
     }
   }
 
   getTreeItem(element: TreeItem): vscode.TreeItem {
+    if (element.type === TreeItemType.TabItem) {
+      element.command = {
+        command: commands.openFile,
+        title: "Open file",
+        arguments: [element],
+      };
+    }
     return element;
   }
 
-  addGroup(name: string) {
-    const currentGroup = this.groups.push(new GroupItem(name, name, name));
-    console.log(currentGroup);
+  async createNewGroup(name: string) {
+    const newGroup = new GroupItem(name, name, name);
+    await newGroup.create();
+    this.groups.push(newGroup);
+    this.currentGroup = newGroup;
+    this.saveGroups();
+  }
+
+  /**
+   * Save the groups to the workspace state
+   */
+  saveGroups() {
+    const workspaceState = this.context!.workspaceState;
+    const encoded = Buffer.from(JSON.stringify(this.groups)).toString("base64");
+    workspaceState.update("groups", encoded);
+
     this.refresh();
   }
 
+  /**
+   * It emits the onDidChangeTreeData event to update the tree view
+   */
   refresh() {
     this._onDidChangeTreeData.fire(undefined);
   }
 
   existsGroup(name: string): boolean {
     return this.groups.find((group) => group.label === name) !== undefined;
+  }
+
+  deleteGroup(item: GroupItem) {
+    this.groups = this.groups.filter((group) => group.id !== item.id);
+    this.saveGroups();
   }
 }
 
@@ -91,15 +118,10 @@ class TreeItem extends vscode.TreeItem {
     this.description = tooltip;
     this.tooltip = `${this.tooltip}`;
   }
-
-  iconPath = {
-    light: path.join(__filename, "..", "..", "resources", "light", "tab.svg"),
-    dark: path.join(__filename, "..", "..", "resources", "dark", "tab.svg"),
-  };
 }
 
-class GroupItem extends TreeItem {
-  private columns: ColumnItem[] = [];
+export class GroupItem extends TreeItem {
+  columns: ColumnItem[] = [];
 
   constructor(
     public readonly id: string,
@@ -117,8 +139,15 @@ class GroupItem extends TreeItem {
   }
 
   iconPath = {
-    light: path.join(__filename, "..", "..", "resources", "dark", "folder.svg"),
-    dark: path.join(__filename, "..", "..", "resources", "light", "folder.svg"),
+    light: path.join(
+      __filename,
+      "..",
+      "..",
+      "resources",
+      "light",
+      "folder.svg"
+    ),
+    dark: path.join(__filename, "..", "..", "resources", "dark", "folder.svg"),
   };
 
   async create(): Promise<ColumnItem[]> {
@@ -145,13 +174,13 @@ class GroupItem extends TreeItem {
       const tabId = `${columnId}-${basename(filename)}`;
       const existsTab = column.tabs.find((item) => item.id === tabId);
       if (!existsTab) {
-        column.tabs.push(new TabItem(tabId, filename, tabId));
+        column.tabs.push(new TabItem(tabId, filename, tabId, activeTextEditor));
       } else {
         break;
       }
 
       await vscode.commands.executeCommand("workbench.action.nextEditor");
-      await wait(1000);
+      await wait(500);
 
       activeTextEditor = vscode.window.activeTextEditor;
     }
@@ -177,18 +206,27 @@ class ColumnItem extends TreeItem {
   }
 
   iconPath = {
-    light: path.join(__filename, "..", "..", "resources", "dark", "column.svg"),
-    dark: path.join(__filename, "..", "..", "resources", "light", "column.svg"),
+    light: path.join(
+      __filename,
+      "..",
+      "..",
+      "resources",
+      "light",
+      "column.svg"
+    ),
+    dark: path.join(__filename, "..", "..", "resources", "dark", "column.svg"),
   };
 }
 
 export class TabItem extends TreeItem {
   filename: string;
+  textEditor: vscode.TextEditor;
 
   constructor(
     public readonly id: string,
     public readonly fileUrl: string,
-    public readonly tooltip: string
+    public readonly tooltip: string,
+    textEditor: vscode.TextEditor
   ) {
     super(
       id,
@@ -199,11 +237,7 @@ export class TabItem extends TreeItem {
       "tab"
     );
     this.filename = fileUrl;
-    this.command = {
-      command: "fileGroups.click",
-      title: "",
-      arguments: [this],
-    };
+    this.textEditor = textEditor;
   }
 
   iconPath = {

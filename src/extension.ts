@@ -2,10 +2,10 @@
 // Import the module and reference it with the alias vscode in your code below
 import * as vscode from "vscode";
 import { NodeDependenciesProvider } from "./dataprovider";
-import { GroupsDataProvider, TabItem } from "./groupsDataProvider";
+import { GroupsDataProvider, TabItem, GroupItem } from "./groupsDataProvider";
 import { commands } from "./constants/commands";
 
-const tabsGroups = new GroupsDataProvider(vscode.workspace.rootPath!);
+let tabsGroups: GroupsDataProvider;
 
 // this method is called when your extension is activated
 // your extension is activated the very first time the command is executed
@@ -14,10 +14,7 @@ export function activate(context: vscode.ExtensionContext) {
   // This line of code will only be executed once when your extension is activated
   console.log('Congratulations, your extension "group-tabs" is now active!');
 
-  /* vscode.window.registerTreeDataProvider(
-    "fileGroups",
-    new TabsGroupsDataProvider(vscode.workspace.rootPath!)
-  ); */
+  tabsGroups = new GroupsDataProvider(vscode.workspace.rootPath!, context);
 
   vscode.window.registerTreeDataProvider("fileGroups", tabsGroups);
 
@@ -31,8 +28,6 @@ export function activate(context: vscode.ExtensionContext) {
       }
     }),
     vscode.commands.registerCommand("group-tabs.helloWorld", () => {
-      // The code you place here will be executed every time your command is executed
-      // Display a message box to the user
       vscode.window.showInformationMessage("Hello World!");
     }),
 
@@ -44,7 +39,8 @@ export function activate(context: vscode.ExtensionContext) {
         if (tabsGroups.existsGroup(name)) {
           vscode.window.showInformationMessage(`Ya existe el grupo ${name}`);
         } else {
-          tabsGroups.addGroup(name);
+          tabsGroups.createNewGroup(name);
+
           vscode.window.showInformationMessage(`Se añadió el grupo ${name}`);
         }
       } else {
@@ -54,6 +50,14 @@ export function activate(context: vscode.ExtensionContext) {
 
     vscode.commands.registerCommand(commands.click, (item: TabItem) => {
       vscode.window.showInformationMessage(`Click al elemento ${item.label}`);
+    }),
+
+    vscode.commands.registerCommand(commands.openFile, (item: TabItem) => {
+      vscode.window.showInformationMessage(`Click al elemento ${item.label}`);
+    }),
+
+    vscode.commands.registerCommand(commands.deleteGroup, (item: GroupItem) => {
+      tabsGroups.deleteGroup(item);
     }),
   ];
 

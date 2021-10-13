@@ -28,11 +28,19 @@
         "title": "Save all tabs"
       },
       {
+        "command": "fileGroups.deleteGroup",
+        "title": "Delete group",
+        "icon": {
+          "light": "resources/light/delete.svg",
+          "dark": "resources/dark/delete.svg"
+        }
+      },
+      {
         "command": "fileGroups.refreshEntry",
         "title": "Refresh",
         "icon": {
-          "light": "resources/dark/refresh.svg",
-          "dark": "resources/light/refresh.svg"
+          "light": "resources/light/refresh.svg",
+          "dark": "resources/dark/refresh.svg"
         }
       },
       {
@@ -43,13 +51,17 @@
         "command": "fileGroups.editEntry",
         "title": "Edit",
         "icon": {
-          "light": "resources/dark/edit.svg",
-          "dark": "resources/light/edit.svg"
+          "light": "resources/light/edit.svg",
+          "dark": "resources/dark/edit.svg"
         }
       },
       {
         "command": "fileGroups.deleteEntry",
-        "title": "Delete"
+        "title": "Delete",
+        "icon": {
+          "light": "resources/light/delete.svg",
+          "dark": "resources/dark/delete.svg"
+        }
       }
     ],
     "menus": {
@@ -66,13 +78,19 @@
       ],
       "view/item/context": [
         {
+          "command": "fileGroups.deleteEntry",
+          "when": "view == fileGroups && viewItem == tab",
+          "group": "inline"
+        },
+        {
           "command": "fileGroups.editEntry",
           "when": "view == fileGroups && viewItem == tab",
           "group": "inline"
         },
         {
-          "command": "fileGroups.deleteEntry",
-          "when": "view == fileGroups && viewItem == tab"
+          "command": "fileGroups.deleteGroup",
+          "when": "view == fileGroups && viewItem == group",
+          "group": "inline"
         }
       ]
     },
