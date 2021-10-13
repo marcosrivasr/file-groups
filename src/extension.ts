@@ -52,9 +52,21 @@ export function activate(context: vscode.ExtensionContext) {
       vscode.window.showInformationMessage(`Click al elemento ${item.label}`);
     }),
 
-    vscode.commands.registerCommand(commands.openFile, (item: TabItem) => {
-      vscode.window.showInformationMessage(`Click al elemento ${item.label}`);
-    }),
+    vscode.commands.registerCommand(
+      commands.openFile,
+      async (item: TabItem) => {
+        try {
+          await vscode.window.showTextDocument(item.textEditor.document, {
+            preview: false,
+            viewColumn: item.textEditor.viewColumn,
+            selection: item.textEditor.selection,
+          });
+          item.command = undefined;
+        } catch (e) {
+          console.log("error", e);
+        }
+      }
+    ),
 
     vscode.commands.registerCommand(commands.deleteGroup, (item: GroupItem) => {
       tabsGroups.deleteGroup(item);
