@@ -4,5 +4,8 @@ export const commands = {
   saveCurrent: "fileGroups.saveCurrent",
   saveAll: "fileGroups.saveAll",
   openFile: "fileGroups.openFile",
+  openGroup: "fileGroups.openGroup",
   deleteGroup: "fileGroups.deleteGroup",
+  addCurrentFile: "fileGroups.addCurrentFile",
+  refreshGroups: "fileGroups.refreshGroups",
 };

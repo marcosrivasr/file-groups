@@ -36,7 +36,15 @@
         }
       },
       {
-        "command": "fileGroups.refreshEntry",
+        "command": "fileGroups.openGroup",
+        "title": "Open all files in group",
+        "icon": {
+          "light": "resources/light/open.svg",
+          "dark": "resources/dark/open.svg"
+        }
+      },
+      {
+        "command": "fileGroups.refreshGroups",
         "title": "Refresh",
         "icon": {
           "light": "resources/light/refresh.svg",
@@ -45,7 +53,19 @@
       },
       {
         "command": "fileGroups.addEntry",
-        "title": "Add current files"
+        "title": "Add current files",
+        "icon": {
+          "light": "resources/light/add.svg",
+          "dark": "resources/dark/add.svg"
+        }
+      },
+      {
+        "command": "fileGroups.addCurrentFile",
+        "title": "➕ Add This file To Tab Group...",
+        "icon": {
+          "light": "resources/light/add.svg",
+          "dark": "resources/dark/add.svg"
+        }
       },
       {
         "command": "fileGroups.editEntry",
@@ -65,9 +85,15 @@
       }
     ],
     "menus": {
+      "editor/context": [
+        {
+          "command": "fileGroups.addCurrentFile",
+          "group": "z_commands"
+        }
+      ],
       "view/title": [
         {
-          "command": "fileGroups.refreshEntry",
+          "command": "fileGroups.refreshGroups",
           "when": "view == fileGroups",
           "group": "navigation"
         },
@@ -89,6 +115,11 @@
         },
         {
           "command": "fileGroups.deleteGroup",
+          "when": "view == fileGroups && viewItem == group",
+          "group": "inline"
+        },
+        {
+          "command": "fileGroups.openGroup",
           "when": "view == fileGroups && viewItem == group",
           "group": "inline"
         }

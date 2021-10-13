@@ -57,7 +57,7 @@ export class GroupsDataProvider implements vscode.TreeDataProvider<TreeItem> {
       element.command = {
         command: commands.openFile,
         title: "Open file",
-        arguments: [element],
+        arguments: [(element as TabItem).textEditor],
       };
     }
     return element;
@@ -97,6 +97,19 @@ export class GroupsDataProvider implements vscode.TreeDataProvider<TreeItem> {
     this.groups = this.groups.filter((group) => group.id !== item.id);
     this.saveGroups();
   }
+
+  getListOfGroups(): readonly string[] {
+    return this.groups.map((group) => group.label);
+  }
+
+  addFileToGroup(groupName: string, activeTextEditor: vscode.TextEditor) {
+    const group = this.groups.find((group) => group.label === groupName);
+
+    if (group) {
+      group.addFile(activeTextEditor);
+      this.saveGroups();
+    }
+  }
 }
 
 /**
@@ -126,7 +139,8 @@ export class GroupItem extends TreeItem {
   constructor(
     public readonly id: string,
     public readonly label: string,
-    public readonly tooltip: string
+    public readonly tooltip: string,
+    public readonly isFromBranch: boolean = false
   ) {
     super(
       id,
@@ -187,6 +201,15 @@ export class GroupItem extends TreeItem {
 
     return this.columns;
   }
+
+  addFile(textEditor: vscode.TextEditor) {
+    const column = this.columns.find(
+      (item) => item.id === `${this.id}-${textEditor.viewColumn}`
+    );
+    if (column) {
+      column.addTab(textEditor);
+    }
+  }
 }
 class ColumnItem extends TreeItem {
   public tabs: TabItem[] = [];
@@ -216,6 +239,20 @@ class ColumnItem extends TreeItem {
     ),
     dark: path.join(__filename, "..", "..", "resources", "dark", "column.svg"),
   };
+
+  addTab(textEditor: vscode.TextEditor) {
+    const tabId = `${this.id}-${basename(textEditor.document.fileName)}`;
+    const existsTab = this.tabs.find((item) => item.id === tabId);
+    if (!existsTab) {
+      this.tabs.push(
+        new TabItem(tabId, textEditor.document.fileName, tabId, textEditor)
+      );
+    } else {
+      vscode.window.showErrorMessage(
+        `The file ${textEditor.document.fileName} is already open in this column`
+      );
+    }
+  }
 }
 
 export class TabItem extends TreeItem {
