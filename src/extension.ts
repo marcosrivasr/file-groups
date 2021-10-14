@@ -8,6 +8,7 @@ import { API, GitErrorCodes, GitExtension } from "./types/git";
 
 let tabsGroups: GroupsDataProvider;
 let git: API;
+let currentBranch: string | undefined;
 
 // this method is called when your extension is activated
 // your extension is activated the very first time the command is executed
@@ -20,8 +21,18 @@ export async function activate(context: vscode.ExtensionContext) {
   const gitExtension =
     vscode.extensions.getExtension<GitExtension>("vscode.git")!.exports;
   git = gitExtension.getAPI(1);
-  git.onDidChangeState((e) => {
+  git.onDidChangeState(async (e) => {
     if (e === "initialized") {
+      currentBranch = await git.repositories[0].state.HEAD!.name;
+
+      git.repositories[0].state.onDidChange(() => {
+        const newBranch = git.repositories[0].state.HEAD?.name;
+        if (newBranch !== currentBranch) {
+          console.log("cambio de rama");
+          currentBranch = newBranch;
+          tabsGroups.changeGroup(newBranch!);
+        }
+      });
     }
   });
 
@@ -56,17 +67,19 @@ async function addNewGroup() {
       );
     } else {
       if (branch === name) {
-        let confirm = await vscode.window.showInputBox({
+        const options = ["Yes", "No"];
+        let confirm = await vscode.window.showQuickPick(options, {
+          canPickMany: false,
           title:
             "(Git): Do you want to link this group with the current branch? (yes/no)",
-          placeHolder: "yes",
-          value: "yes",
         });
 
         if (confirm?.trim().toLowerCase() === "yes") {
+          tabsGroups.createNewGroup(name, true);
+          vscode.window.showInformationMessage(`New group added: ${name}`);
         } else {
-          //tabsGroups.createNewGroup(name);
-          //vscode.window.showInformationMessage(`New group added: ${name}`);
+          tabsGroups.createNewGroup(name);
+          vscode.window.showInformationMessage(`New group added: ${name}`);
         }
       } else {
         tabsGroups.createNewGroup(name);
@@ -94,7 +107,9 @@ function deleteGroup(item: GroupItem) {
   tabsGroups.deleteGroup(item);
 }
 
-function openGroup() {}
+function openGroup(item: GroupItem) {
+  tabsGroups.openGroup(item);
+}
 
 async function addCurrentFile() {
   let option = await vscode.window.showQuickPick(tabsGroups.getListOfGroups());

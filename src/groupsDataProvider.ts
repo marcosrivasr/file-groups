@@ -63,8 +63,8 @@ export class GroupsDataProvider implements vscode.TreeDataProvider<TreeItem> {
     return element;
   }
 
-  async createNewGroup(name: string) {
-    const newGroup = new GroupItem(name, name, name);
+  async createNewGroup(name: string, gitRepo: boolean = false) {
+    const newGroup = new GroupItem(name, name, name, gitRepo);
     await newGroup.create();
     this.groups.push(newGroup);
     this.currentGroup = newGroup;
@@ -110,6 +110,34 @@ export class GroupsDataProvider implements vscode.TreeDataProvider<TreeItem> {
       this.saveGroups();
     }
   }
+
+  changeGroup(id: string) {
+    const group = this.groups.find((group) => group.id === id);
+
+    if (group && group.gitRepo) {
+      this.openGroup(group);
+    }
+  }
+
+  async openGroup(group: GroupItem) {
+    //close all editors
+    await vscode.commands.executeCommand("workbench.action.closeAllEditors");
+
+    group.columns.forEach((column) => {
+      column.tabs.forEach(async (tab) => {
+        const editor = tab.textEditor;
+        try {
+          await vscode.window.showTextDocument(editor.document, {
+            preview: false,
+            viewColumn: editor.viewColumn,
+            selection: editor.selection,
+          });
+        } catch (e) {
+          console.log("error", e);
+        }
+      });
+    });
+  }
 }
 
 /**
@@ -140,7 +168,7 @@ export class GroupItem extends TreeItem {
     public readonly id: string,
     public readonly label: string,
     public readonly tooltip: string,
-    public readonly isFromBranch: boolean = false
+    public readonly gitRepo: boolean
   ) {
     super(
       id,
@@ -150,25 +178,39 @@ export class GroupItem extends TreeItem {
       vscode.TreeItemCollapsibleState.Expanded,
       "group"
     );
-  }
 
-  iconPath = {
-    light: path.join(
-      __filename,
-      "..",
-      "..",
-      "resources",
-      "light",
-      "folder.svg"
-    ),
-    dark: path.join(__filename, "..", "..", "resources", "dark", "folder.svg"),
-  };
+    if (gitRepo) {
+      this.iconPath = {
+        light: path.join(__filename, "..", "..", "resources", "git.svg"),
+        dark: path.join(__filename, "..", "..", "resources", "git.svg"),
+      };
+    } else {
+      this.iconPath = {
+        light: path.join(
+          __filename,
+          "..",
+          "..",
+          "resources",
+          "light",
+          "folder.svg"
+        ),
+        dark: path.join(
+          __filename,
+          "..",
+          "..",
+          "resources",
+          "dark",
+          "folder.svg"
+        ),
+      };
+    }
+  }
 
   async create(): Promise<ColumnItem[]> {
     let activeTextEditor = vscode.window.activeTextEditor;
 
     if (!activeTextEditor) return [];
-
+    let count = 0;
     while (activeTextEditor) {
       //1. obtener activeTextEditor e info
       const filename = activeTextEditor.document.fileName;
@@ -188,7 +230,8 @@ export class GroupItem extends TreeItem {
       const tabId = `${columnId}-${basename(filename)}`;
       const existsTab = column.tabs.find((item) => item.id === tabId);
       if (!existsTab) {
-        column.tabs.push(new TabItem(tabId, filename, tabId, activeTextEditor));
+        column.tabs.push(new TabItem(tabId, filename, "", activeTextEditor));
+        count++;
       } else {
         break;
       }
@@ -198,7 +241,10 @@ export class GroupItem extends TreeItem {
 
       activeTextEditor = vscode.window.activeTextEditor;
     }
-
+    this.description = count + " files";
+    this.columns.forEach((column) => {
+      column.description = column.tabs.length + " files";
+    });
     return this.columns;
   }
 
