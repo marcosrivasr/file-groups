@@ -8,6 +8,7 @@ import { API, GitErrorCodes, GitExtension } from "./types/git";
 
 let tabsGroups: GroupsDataProvider;
 let git: API;
+let isRepository = false;
 let currentBranch: string | undefined;
 
 // this method is called when your extension is activated
@@ -15,24 +16,34 @@ let currentBranch: string | undefined;
 export async function activate(context: vscode.ExtensionContext) {
   // Use the console to output diagnostic information (console.log) and errors (console.error)
   // This line of code will only be executed once when your extension is activated
-  console.log('Congratulations, your extension "group-tabs" is now active!');
 
   await vscode.extensions.getExtension("vscode.git")?.activate();
   const gitExtension =
     vscode.extensions.getExtension<GitExtension>("vscode.git")!.exports;
   git = gitExtension.getAPI(1);
+
   git.onDidChangeState(async (e) => {
     if (e === "initialized") {
-      currentBranch = await git.repositories[0].state.HEAD!.name;
+      try {
+        currentBranch = await git.repositories[0].state.HEAD!.name;
+        isRepository = true;
 
-      git.repositories[0].state.onDidChange(() => {
-        const newBranch = git.repositories[0].state.HEAD?.name;
-        if (newBranch !== currentBranch) {
-          console.log("cambio de rama");
-          currentBranch = newBranch;
-          tabsGroups.changeGroup(newBranch!);
-        }
-      });
+        git.repositories[0].state.onDidChange(async () => {
+          try {
+            const newBranch = await git.repositories[0].state.HEAD?.name;
+            if (newBranch !== currentBranch) {
+              console.log("Change of branch");
+              currentBranch = newBranch;
+              tabsGroups.changeGroup(newBranch!);
+            }
+            isRepository = true;
+          } catch (error) {
+            isRepository = false;
+          }
+        });
+      } catch (error) {
+        isRepository = false;
+      }
     }
   });
 
@@ -47,20 +58,25 @@ export async function activate(context: vscode.ExtensionContext) {
     vscode.commands.registerCommand(commands.openGroup, openGroup),
     vscode.commands.registerCommand(commands.addCurrentFile, addCurrentFile),
     vscode.commands.registerCommand(commands.refreshGroups, refreshGroups),
+    vscode.commands.registerCommand(commands.deleteEntry, deleteEntry),
   ];
 
-  //context.subscriptions.push(disposable);
   context.subscriptions.concat(disposables);
 }
 
 async function addNewGroup() {
-  const branch = (await git.repositories[0].state.HEAD?.name) || "";
+  let branch = "";
+  if (isRepository) {
+    branch = (await git.repositories[0].state.HEAD?.name) || "";
+  }
+
   let name = await vscode.window.showInputBox({
     title: "Name of the group",
     placeHolder: "Name of the group",
     value: branch,
   });
-  if (name) {
+  if (name && name.trim() !== "") {
+    name = name.trim();
     if (tabsGroups.existsGroup(name)) {
       vscode.window.showInformationMessage(
         `The group ${name} already exists, choose another name`
@@ -120,6 +136,10 @@ async function addCurrentFile() {
 
 function refreshGroups() {
   tabsGroups.refresh();
+}
+
+function deleteEntry(item: TabItem) {
+  tabsGroups.deleteTab(item);
 }
 
 // this method is called when your extension is deactivated

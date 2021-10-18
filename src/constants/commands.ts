@@ -8,4 +8,5 @@ export const commands = {
   deleteGroup: "fileGroups.deleteGroup",
   addCurrentFile: "fileGroups.addCurrentFile",
   refreshGroups: "fileGroups.refreshGroups",
+  deleteEntry: "fileGroups.deleteEntry",
 };

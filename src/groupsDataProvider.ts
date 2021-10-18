@@ -64,7 +64,7 @@ export class GroupsDataProvider implements vscode.TreeDataProvider<TreeItem> {
   }
 
   async createNewGroup(name: string, gitRepo: boolean = false) {
-    const newGroup = new GroupItem(name, name, name, gitRepo);
+    const newGroup = new GroupItem(name, name, "", gitRepo);
     await newGroup.create();
     this.groups.push(newGroup);
     this.currentGroup = newGroup;
@@ -106,8 +106,11 @@ export class GroupsDataProvider implements vscode.TreeDataProvider<TreeItem> {
     const group = this.groups.find((group) => group.label === groupName);
 
     if (group) {
-      group.addFile(activeTextEditor);
-      this.saveGroups();
+      if (group.addFile(activeTextEditor)) {
+        // update the tree view
+
+        this.saveGroups();
+      }
     }
   }
 
@@ -137,6 +140,18 @@ export class GroupsDataProvider implements vscode.TreeDataProvider<TreeItem> {
         }
       });
     });
+  }
+
+  deleteTab(item: TabItem) {
+    const id = item.id;
+
+    this.groups.forEach((group) => {
+      group.columns.forEach((column) => {
+        column.tabs = column.tabs.filter((tab) => tab.id !== id);
+      });
+    });
+
+    this.saveGroups();
   }
 }
 
@@ -223,7 +238,7 @@ export class GroupItem extends TreeItem {
       //3. si ya existe una columan meter el activeTextEditor
       if (!column) {
         //4. si no existe una columna crear la columna y meter el activeTextEditor
-        column = new ColumnItem(columnId, columnLabel, columnId);
+        column = new ColumnItem(columnId, columnLabel, "");
         this.columns.push(column);
       }
 
@@ -241,19 +256,30 @@ export class GroupItem extends TreeItem {
 
       activeTextEditor = vscode.window.activeTextEditor;
     }
-    this.description = count + " files";
-    this.columns.forEach((column) => {
+    //this.description = count + " files";
+    /* this.columns.forEach((column) => {
       column.description = column.tabs.length + " files";
-    });
+    }); */
     return this.columns;
   }
 
-  addFile(textEditor: vscode.TextEditor) {
+  addFile(textEditor: vscode.TextEditor): boolean {
+    let res = false;
     const column = this.columns.find(
       (item) => item.id === `${this.id}-${textEditor.viewColumn}`
     );
     if (column) {
-      column.addTab(textEditor);
+      res = column.addTab(textEditor);
+    }
+    return res;
+  }
+
+  deleteTab(columnId: string, textEditor: vscode.TextEditor) {
+    const column = this.columns.find(
+      (item) => item.label === `Column ${columnId}`
+    );
+    if (column) {
+      column.deleteTab(textEditor);
     }
   }
 }
@@ -286,17 +312,30 @@ class ColumnItem extends TreeItem {
     dark: path.join(__filename, "..", "..", "resources", "dark", "column.svg"),
   };
 
-  addTab(textEditor: vscode.TextEditor) {
+  addTab(textEditor: vscode.TextEditor): boolean {
     const tabId = `${this.id}-${basename(textEditor.document.fileName)}`;
     const existsTab = this.tabs.find((item) => item.id === tabId);
     if (!existsTab) {
       this.tabs.push(
-        new TabItem(tabId, textEditor.document.fileName, tabId, textEditor)
+        new TabItem(tabId, textEditor.document.fileName, "", textEditor)
       );
+      return true;
     } else {
       vscode.window.showErrorMessage(
         `The file ${textEditor.document.fileName} is already open in this column`
       );
+    }
+
+    return false;
+  }
+
+  deleteTab(textEditor: vscode.TextEditor) {
+    const tab = this.tabs.find(
+      (item) =>
+        item.textEditor.document.fileName === textEditor.document.fileName
+    );
+    if (tab) {
+      this.tabs = this.tabs.filter((item) => item !== tab);
     }
   }
 }

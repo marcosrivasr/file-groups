@@ -17,7 +17,7 @@
     "commands": [
       {
         "command": "fileGroups.save",
-        "title": "Tab Groups: Save all tabs"
+        "title": "Tab Groups: Create a new group"
       },
       {
         "command": "fileGroups.deleteGroup",
@@ -60,14 +60,6 @@
         }
       },
       {
-        "command": "fileGroups.editEntry",
-        "title": "Tab Groups: Edit",
-        "icon": {
-          "light": "resources/light/edit.svg",
-          "dark": "resources/dark/edit.svg"
-        }
-      },
-      {
         "command": "fileGroups.deleteEntry",
         "title": "Tab Groups: Delete",
         "icon": {
@@ -97,11 +89,6 @@
       "view/item/context": [
         {
           "command": "fileGroups.deleteEntry",
-          "when": "view == fileGroups && viewItem == tab",
-          "group": "inline"
-        },
-        {
-          "command": "fileGroups.editEntry",
           "when": "view == fileGroups && viewItem == tab",
           "group": "inline"
         },
