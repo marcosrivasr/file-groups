@@ -29,7 +29,7 @@ export class GroupsDataProvider implements vscode.TreeDataProvider<TreeItem> {
         console.log("Was not able to parse decoded Base64 as Json");
       } // Base64 decoded was not valid
     } else {
-      console.log("No hay nada guardado");
+      console.log("Nothing saved");
     }
   }
 
@@ -54,10 +54,11 @@ export class GroupsDataProvider implements vscode.TreeDataProvider<TreeItem> {
 
   getTreeItem(element: TreeItem): vscode.TreeItem {
     if (element.type === TreeItemType.TabItem) {
+      const tab = element as TabItem;
       element.command = {
         command: commands.openFile,
         title: "Open file",
-        arguments: [(element as TabItem).textEditor],
+        arguments: [tab.textEditor],
       };
     }
     return element;
@@ -130,11 +131,18 @@ export class GroupsDataProvider implements vscode.TreeDataProvider<TreeItem> {
       column.tabs.forEach(async (tab) => {
         const editor = tab.textEditor;
         try {
-          await vscode.window.showTextDocument(editor.document, {
-            preview: false,
-            viewColumn: editor.viewColumn,
-            selection: editor.selection,
-          });
+          if (
+            !editor.document.isUntitled ||
+            fs.existsSync(editor.document.fileName)
+          ) {
+            await vscode.window.showTextDocument(editor.document, {
+              preview: false,
+              viewColumn: editor.viewColumn,
+              selection: editor.selection,
+            });
+          } else {
+            //the file is Untitled or doesn't exist
+          }
         } catch (e) {
           console.log("error", e);
         }
@@ -227,39 +235,45 @@ export class GroupItem extends TreeItem {
     if (!activeTextEditor) return [];
     let count = 0;
     while (activeTextEditor) {
-      //1. obtener activeTextEditor e info
-      const filename = activeTextEditor.document.fileName;
-      const columnId = `${this.id}-${activeTextEditor.viewColumn}`;
-      const columnLabel = `Column ${activeTextEditor.viewColumn}`;
+      if (
+        !activeTextEditor.document.isUntitled ||
+        fs.existsSync(activeTextEditor.document.fileName)
+      ) {
+        //1. obtener activeTextEditor e info
+        const filename = activeTextEditor.document.fileName;
+        const columnId = `${this.id}-${activeTextEditor.viewColumn}`;
+        const columnLabel = `Column ${activeTextEditor.viewColumn}`;
 
-      //2. validar si ya existe una columna
-      let column = this.columns.find((item) => item.id === columnId);
+        //2. validar si ya existe una columna
+        let column = this.columns.find((item) => item.id === columnId);
 
-      //3. si ya existe una columan meter el activeTextEditor
-      if (!column) {
-        //4. si no existe una columna crear la columna y meter el activeTextEditor
-        column = new ColumnItem(columnId, columnLabel, "");
-        this.columns.push(column);
-      }
+        //3. si ya existe una columan meter el activeTextEditor
+        if (!column) {
+          //4. si no existe una columna crear la columna y meter el activeTextEditor
+          column = new ColumnItem(columnId, columnLabel, "");
+          this.columns.push(column);
+        }
 
-      const tabId = `${columnId}-${basename(filename)}`;
-      const existsTab = column.tabs.find((item) => item.id === tabId);
-      if (!existsTab) {
-        column.tabs.push(new TabItem(tabId, filename, "", activeTextEditor));
-        count++;
+        const tabId = `${columnId}-${basename(filename)}`;
+        const existsTab = column.tabs.find((item) => item.id === tabId);
+        if (!existsTab) {
+          column.tabs.push(new TabItem(tabId, filename, "", activeTextEditor));
+          count++;
+        } else {
+          break;
+        }
+
+        await vscode.commands.executeCommand("workbench.action.nextEditor");
+        //await wait(500);
+
+        activeTextEditor = vscode.window.activeTextEditor;
       } else {
-        break;
+        await vscode.commands.executeCommand("workbench.action.nextEditor");
+        //await wait(500);
+
+        activeTextEditor = vscode.window.activeTextEditor;
       }
-
-      await vscode.commands.executeCommand("workbench.action.nextEditor");
-      await wait(500);
-
-      activeTextEditor = vscode.window.activeTextEditor;
     }
-    //this.description = count + " files";
-    /* this.columns.forEach((column) => {
-      column.description = column.tabs.length + " files";
-    }); */
     return this.columns;
   }
 
