@@ -4,12 +4,11 @@ import * as path from "path";
 import { wait, Tab, createTab } from "./util";
 import { basename } from "path";
 import { commands } from "./constants/commands";
-
-enum TreeItemType {
-  GroupItem,
-  ColumnItem,
-  TabItem,
-}
+import GroupItem from "./groupItem";
+import TreeItem from "./treeItem";
+import TabItem from "./tabItem";
+import ColumnItem from "./columnItem";
+import { TreeItemType } from "./types/types";
 
 export class GroupsDataProvider implements vscode.TreeDataProvider<TreeItem> {
   groups: GroupItem[] = [];
@@ -24,12 +23,14 @@ export class GroupsDataProvider implements vscode.TreeDataProvider<TreeItem> {
       const decoded = Buffer.from(base64, "base64").toString("ascii");
       try {
         // Try to use the decoded base64
-        this.groups = JSON.parse(decoded);
+        const json = JSON.parse(decoded) as GroupItem[];
+        this.groups = [...json];
       } catch {
         console.log("Was not able to parse decoded Base64 as Json");
       } // Base64 decoded was not valid
     } else {
       console.log("Nothing saved");
+      this.groups = [];
     }
   }
 
@@ -161,223 +162,4 @@ export class GroupsDataProvider implements vscode.TreeDataProvider<TreeItem> {
 
     this.saveGroups();
   }
-}
-
-/**
- * Base class for tree items
- */
-class TreeItem extends vscode.TreeItem {
-  constructor(
-    public readonly id: string,
-    public readonly label: string,
-    public readonly tooltip: string,
-    public readonly type: TreeItemType,
-    public readonly collapsibleState: vscode.TreeItemCollapsibleState,
-    public readonly contextValue: string
-  ) {
-    super(label, collapsibleState);
-
-    this.contextValue = contextValue;
-    this.id = id;
-    this.description = tooltip;
-    this.tooltip = `${this.tooltip}`;
-  }
-}
-
-export class GroupItem extends TreeItem {
-  columns: ColumnItem[] = [];
-
-  constructor(
-    public readonly id: string,
-    public readonly label: string,
-    public readonly tooltip: string,
-    public readonly gitRepo: boolean
-  ) {
-    super(
-      id,
-      label,
-      tooltip,
-      TreeItemType.GroupItem,
-      vscode.TreeItemCollapsibleState.Expanded,
-      "group"
-    );
-
-    if (gitRepo) {
-      this.iconPath = {
-        light: path.join(__filename, "..", "..", "resources", "git.svg"),
-        dark: path.join(__filename, "..", "..", "resources", "git.svg"),
-      };
-    } else {
-      this.iconPath = {
-        light: path.join(
-          __filename,
-          "..",
-          "..",
-          "resources",
-          "light",
-          "folder.svg"
-        ),
-        dark: path.join(
-          __filename,
-          "..",
-          "..",
-          "resources",
-          "dark",
-          "folder.svg"
-        ),
-      };
-    }
-  }
-
-  async create(): Promise<ColumnItem[]> {
-    let activeTextEditor = vscode.window.activeTextEditor;
-
-    if (!activeTextEditor) return [];
-    let count = 0;
-    while (activeTextEditor) {
-      if (
-        !activeTextEditor.document.isUntitled ||
-        fs.existsSync(activeTextEditor.document.fileName)
-      ) {
-        //1. obtener activeTextEditor e info
-        const filename = activeTextEditor.document.fileName;
-        const columnId = `${this.id}-${activeTextEditor.viewColumn}`;
-        const columnLabel = `Column ${activeTextEditor.viewColumn}`;
-
-        //2. validar si ya existe una columna
-        let column = this.columns.find((item) => item.id === columnId);
-
-        //3. si ya existe una columan meter el activeTextEditor
-        if (!column) {
-          //4. si no existe una columna crear la columna y meter el activeTextEditor
-          column = new ColumnItem(columnId, columnLabel, "");
-          this.columns.push(column);
-        }
-
-        const tabId = `${columnId}-${basename(filename)}`;
-        const existsTab = column.tabs.find((item) => item.id === tabId);
-        if (!existsTab) {
-          column.tabs.push(new TabItem(tabId, filename, "", activeTextEditor));
-          count++;
-        } else {
-          break;
-        }
-
-        await vscode.commands.executeCommand("workbench.action.nextEditor");
-        //await wait(500);
-
-        activeTextEditor = vscode.window.activeTextEditor;
-      } else {
-        await vscode.commands.executeCommand("workbench.action.nextEditor");
-        //await wait(500);
-
-        activeTextEditor = vscode.window.activeTextEditor;
-      }
-    }
-    return this.columns;
-  }
-
-  addFile(textEditor: vscode.TextEditor): boolean {
-    let res = false;
-    const column = this.columns.find(
-      (item) => item.id === `${this.id}-${textEditor.viewColumn}`
-    );
-    if (column) {
-      res = column.addTab(textEditor);
-    }
-    return res;
-  }
-
-  deleteTab(columnId: string, textEditor: vscode.TextEditor) {
-    const column = this.columns.find(
-      (item) => item.label === `Column ${columnId}`
-    );
-    if (column) {
-      column.deleteTab(textEditor);
-    }
-  }
-}
-class ColumnItem extends TreeItem {
-  public tabs: TabItem[] = [];
-  constructor(
-    public readonly id: string,
-    public readonly label: string,
-    public readonly tooltip: string
-  ) {
-    super(
-      id,
-      label,
-      tooltip,
-      TreeItemType.ColumnItem,
-      vscode.TreeItemCollapsibleState.Collapsed,
-      "column"
-    );
-  }
-
-  iconPath = {
-    light: path.join(
-      __filename,
-      "..",
-      "..",
-      "resources",
-      "light",
-      "column.svg"
-    ),
-    dark: path.join(__filename, "..", "..", "resources", "dark", "column.svg"),
-  };
-
-  addTab(textEditor: vscode.TextEditor): boolean {
-    const tabId = `${this.id}-${basename(textEditor.document.fileName)}`;
-    const existsTab = this.tabs.find((item) => item.id === tabId);
-    if (!existsTab) {
-      this.tabs.push(
-        new TabItem(tabId, textEditor.document.fileName, "", textEditor)
-      );
-      return true;
-    } else {
-      vscode.window.showErrorMessage(
-        `The file ${textEditor.document.fileName} is already open in this column`
-      );
-    }
-
-    return false;
-  }
-
-  deleteTab(textEditor: vscode.TextEditor) {
-    const tab = this.tabs.find(
-      (item) =>
-        item.textEditor.document.fileName === textEditor.document.fileName
-    );
-    if (tab) {
-      this.tabs = this.tabs.filter((item) => item !== tab);
-    }
-  }
-}
-
-export class TabItem extends TreeItem {
-  filename: string;
-  textEditor: vscode.TextEditor;
-
-  constructor(
-    public readonly id: string,
-    public readonly fileUrl: string,
-    public readonly tooltip: string,
-    textEditor: vscode.TextEditor
-  ) {
-    super(
-      id,
-      basename(fileUrl),
-      tooltip,
-      TreeItemType.TabItem,
-      vscode.TreeItemCollapsibleState.None,
-      "tab"
-    );
-    this.filename = fileUrl;
-    this.textEditor = textEditor;
-  }
-
-  iconPath = {
-    light: path.join(__filename, "..", "..", "resources", "light", "group.svg"),
-    dark: path.join(__filename, "..", "..", "resources", "dark", "group.svg"),
-  };
 }

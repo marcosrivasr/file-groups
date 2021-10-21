@@ -1,6 +1,6 @@
 {
-  "name": "group-tabs",
-  "displayName": "group tabs",
+  "name": "file-groups",
+  "displayName": "File Groups",
   "description": "",
   "version": "0.0.1",
   "engines": {
@@ -17,11 +17,11 @@
     "commands": [
       {
         "command": "fileGroups.save",
-        "title": "Tab Groups: Create a new group"
+        "title": "File Groups: Create a new group"
       },
       {
         "command": "fileGroups.deleteGroup",
-        "title": " Tab Groups: Delete group",
+        "title": " File Groups: Delete group",
         "icon": {
           "light": "resources/light/delete.svg",
           "dark": "resources/dark/delete.svg"
@@ -29,7 +29,7 @@
       },
       {
         "command": "fileGroups.openGroup",
-        "title": "Tab Groups: Open group",
+        "title": "File Groups: Open group",
         "icon": {
           "light": "resources/light/open.svg",
           "dark": "resources/dark/open.svg"
@@ -37,7 +37,7 @@
       },
       {
         "command": "fileGroups.refreshGroups",
-        "title": "Tab Groups: Refresh",
+        "title": "File Groups: Refresh",
         "icon": {
           "light": "resources/light/refresh.svg",
           "dark": "resources/dark/refresh.svg"
@@ -45,7 +45,7 @@
       },
       {
         "command": "fileGroups.addEntry",
-        "title": "Tab Groups: Save files",
+        "title": "File Groups: Save files",
         "icon": {
           "light": "resources/light/add.svg",
           "dark": "resources/dark/add.svg"
@@ -61,7 +61,7 @@
       },
       {
         "command": "fileGroups.deleteEntry",
-        "title": "Tab Groups: Delete",
+        "title": "File Groups: Delete",
         "icon": {
           "light": "resources/light/delete.svg",
           "dark": "resources/dark/delete.svg"

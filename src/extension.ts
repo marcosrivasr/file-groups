@@ -1,50 +1,56 @@
 // The module 'vscode' contains the VS Code extensibility API
 // Import the module and reference it with the alias vscode in your code below
 import * as vscode from "vscode";
-import { NodeDependenciesProvider } from "./dataprovider";
-import { GroupsDataProvider, TabItem, GroupItem } from "./groupsDataProvider";
+import { GroupsDataProvider } from "./groupsDataProvider";
 import { commands } from "./constants/commands";
 import { API, GitErrorCodes, GitExtension } from "./types/git";
+import GroupItem from "./groupItem";
+import TabItem from "./tabItem";
+import { TreeItemType } from "./types/types";
 
-let tabsGroups: GroupsDataProvider;
+let fileGroups: GroupsDataProvider;
 let git: API;
 let isRepository = false;
 let currentBranch: string | undefined;
 
 export async function activate(context: vscode.ExtensionContext) {
-  await vscode.extensions.getExtension("vscode.git")?.activate();
-  const gitExtension =
-    vscode.extensions.getExtension<GitExtension>("vscode.git")!.exports;
-  git = gitExtension.getAPI(1);
+  try {
+    await vscode.extensions.getExtension("vscode.git")?.activate();
+    const gitExtension =
+      vscode.extensions.getExtension<GitExtension>("vscode.git")!.exports;
+    git = gitExtension.getAPI(1);
 
-  git.onDidChangeState(async (e) => {
-    if (e === "initialized") {
-      try {
-        currentBranch = await git.repositories[0].state.HEAD!.name;
-        isRepository = true;
+    git.onDidChangeState(async (e) => {
+      if (e === "initialized") {
+        try {
+          currentBranch = await git.repositories[0].state.HEAD!.name;
+          isRepository = true;
 
-        git.repositories[0].state.onDidChange(async () => {
-          try {
-            const newBranch = await git.repositories[0].state.HEAD?.name;
-            if (newBranch !== currentBranch) {
-              console.log("Change of branch");
-              currentBranch = newBranch;
-              tabsGroups.changeGroup(newBranch!);
+          git.repositories[0].state.onDidChange(async () => {
+            try {
+              const newBranch = await git.repositories[0].state.HEAD?.name;
+              if (newBranch !== currentBranch) {
+                console.log("Change of branch");
+                currentBranch = newBranch;
+                fileGroups.changeGroup(newBranch!);
+              }
+              isRepository = true;
+            } catch (error) {
+              isRepository = false;
             }
-            isRepository = true;
-          } catch (error) {
-            isRepository = false;
-          }
-        });
-      } catch (error) {
-        isRepository = false;
+          });
+        } catch (error) {
+          isRepository = false;
+        }
       }
-    }
-  });
+    });
+  } catch (gitExtensionError) {
+    console.log("Git Extension Error", gitExtensionError);
+  }
 
-  tabsGroups = new GroupsDataProvider(vscode.workspace.rootPath!, context);
+  fileGroups = new GroupsDataProvider(vscode.workspace.rootPath!, context);
 
-  vscode.window.registerTreeDataProvider("fileGroups", tabsGroups);
+  vscode.window.registerTreeDataProvider("fileGroups", fileGroups);
 
   const disposables = [
     vscode.commands.registerCommand(commands.add, addNewGroup),
@@ -72,7 +78,7 @@ async function addNewGroup() {
   });
   if (name && name.trim() !== "") {
     name = name.trim();
-    if (tabsGroups.existsGroup(name)) {
+    if (fileGroups.existsGroup(name)) {
       vscode.window.showInformationMessage(
         `The group ${name} already exists, choose another name`
       );
@@ -86,14 +92,14 @@ async function addNewGroup() {
         });
 
         if (confirm?.trim().toLowerCase() === "yes") {
-          tabsGroups.createNewGroup(name, true);
+          fileGroups.createNewGroup(name, true);
           vscode.window.showInformationMessage(`New group added: ${name}`);
         } else {
-          tabsGroups.createNewGroup(name);
+          fileGroups.createNewGroup(name);
           vscode.window.showInformationMessage(`New group added: ${name}`);
         }
       } else {
-        tabsGroups.createNewGroup(name);
+        fileGroups.createNewGroup(name);
         vscode.window.showInformationMessage(`New group added: ${name}`);
       }
     }
@@ -104,37 +110,46 @@ async function addNewGroup() {
 
 async function openFile(editor: vscode.TextEditor) {
   try {
-    await vscode.window.showTextDocument(editor.document, {
-      preview: false,
-      viewColumn: editor.viewColumn,
-      selection: editor.selection,
-    });
+    if (editor.document.isUntitled) {
+    } else {
+      await vscode.window.showTextDocument(editor.document, {
+        preview: false,
+        viewColumn: editor.viewColumn,
+        selection: editor.selection,
+      });
+    }
   } catch (e) {
-    console.log("error", e);
+    console.log("Open File Error Exception", e);
   }
 }
 
 function deleteGroup(item: GroupItem) {
-  tabsGroups.deleteGroup(item);
+  fileGroups.deleteGroup(item);
 }
 
 function openGroup(item: GroupItem) {
-  tabsGroups.openGroup(item);
+  fileGroups.openGroup(item);
 }
 
 async function addCurrentFile() {
-  let option = await vscode.window.showQuickPick(tabsGroups.getListOfGroups());
+  if (vscode.window.activeTextEditor?.document.isUntitled) {
+    vscode.window.showInformationMessage(
+      `Untitled files cannot be saved into a group`
+    );
+    return;
+  }
+  let option = await vscode.window.showQuickPick(fileGroups.getListOfGroups());
   if (option) {
-    tabsGroups.addFileToGroup(option, vscode.window.activeTextEditor!);
+    fileGroups.addFileToGroup(option, vscode.window.activeTextEditor!);
   }
 }
 
 function refreshGroups() {
-  tabsGroups.refresh();
+  fileGroups.refresh();
 }
 
 function deleteEntry(item: TabItem) {
-  tabsGroups.deleteTab(item);
+  fileGroups.deleteTab(item);
 }
 
 // this method is called when your extension is deactivated
