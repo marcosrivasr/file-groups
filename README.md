@@ -43,3 +43,7 @@ Did you find an issue? Support this extension by [submitting a new issue](https:
 ### 1.0.0
 
 Initial release of the extension with the basic functionality
+
+### 1.0.2
+
+Fixes the Git integration, now when a workspace has Git enabled the extension will suggest to create a new group linked to that branch
