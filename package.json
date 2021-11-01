@@ -1,9 +1,9 @@
 {
   "name": "file-groups",
   "displayName": "File Groups",
-  "publisher": "VidaMRR",
+  "publisher": "vidamrr",
   "description": "This extension allows to create groups of files in a single workspace in order to work with different parts of the project without losing the state of the files. It supports Git, so you can link a branch with a group of files",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "engines": {
     "vscode": "^1.60.0"
   },
