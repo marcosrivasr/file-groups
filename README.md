@@ -40,15 +40,15 @@ Did you find an issue? Support this extension by [submitting a new issue](https:
 
 ## Release Notes
 
-### 1.0.0
+### 0.0.0
 
 Initial release of the extension with the basic functionality
 
-### 1.0.2
+### 0.0.2
 
 Fixes the Git integration, now when a workspace has Git enabled the extension will suggest to create a new group linked to that branch
 
-### 1.0.3
+### 0.0.3
 
 - Fixes the issue where sometimes the Git integration didn't work correctly to identify the current branch
 - Fixes an issue where once the data is saved and the editor is opened again the data don't load with all the methods for the classes. Now the data is correclty loaded with properties and methods
