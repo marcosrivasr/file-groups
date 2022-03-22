@@ -24,7 +24,20 @@ export class GroupsDataProvider implements vscode.TreeDataProvider<TreeItem> {
       try {
         // Try to use the decoded base64
         const json = JSON.parse(decoded) as GroupItem[];
-        this.groups = [...json];
+        const openedGroups = json.map((g) => {
+          const instanceGroup = new GroupItem("", "", "", false);
+          Object.assign(instanceGroup, g);
+
+          const cols = instanceGroup.columns.map((c, i) => {
+            const instanceColumn = new ColumnItem("", "", "");
+            Object.assign(instanceColumn, g.columns[i]);
+            return instanceColumn;
+          });
+          instanceGroup.columns = [...cols];
+
+          return instanceGroup;
+        });
+        this.groups = [...openedGroups];
       } catch {
         console.log("Was not able to parse decoded Base64 as Json");
       } // Base64 decoded was not valid
@@ -105,12 +118,13 @@ export class GroupsDataProvider implements vscode.TreeDataProvider<TreeItem> {
   }
 
   addFileToGroup(groupName: string, activeTextEditor: vscode.TextEditor) {
-    const group = this.groups.find((group) => group.label === groupName);
+    const group: GroupItem | undefined = this.groups.find(
+      (group) => group.label === groupName
+    );
 
     if (group) {
       if (group.addFile(activeTextEditor)) {
         // update the tree view
-
         this.saveGroups();
       }
     }
