@@ -9,39 +9,25 @@ import TabItem from "./tabItem";
 import { TreeItemType } from "./types/types";
 
 let fileGroups: GroupsDataProvider;
-let git: API;
+const gitExtension =
+  vscode.extensions.getExtension<GitExtension>("vscode.git")!.exports;
+const git = gitExtension.getAPI(1);
 let isRepository = false;
 let currentBranch: string | undefined;
 
 export async function activate(context: vscode.ExtensionContext) {
   try {
-    await vscode.extensions.getExtension("vscode.git")?.activate();
-    const gitExtension =
-      vscode.extensions.getExtension<GitExtension>("vscode.git")!.exports;
-    git = gitExtension.getAPI(1);
-
     git.onDidChangeState(async (e) => {
-      if (e === "initialized") {
-        try {
-          currentBranch = await git.repositories[0].state.HEAD!.name;
+      if (e === "initialized" && git.repositories.length > 0) {
+        git.repositories[0].state.onDidChange(() => {
+          const newBranch = git.repositories[0].state.HEAD?.name;
+          if (newBranch !== currentBranch) {
+            console.log("Change of branch");
+            currentBranch = newBranch;
+            fileGroups.changeGroup(newBranch!);
+          }
           isRepository = true;
-
-          git.repositories[0].state.onDidChange(async () => {
-            try {
-              const newBranch = await git.repositories[0].state.HEAD?.name;
-              if (newBranch !== currentBranch) {
-                console.log("Change of branch");
-                currentBranch = newBranch;
-                fileGroups.changeGroup(newBranch!);
-              }
-              isRepository = true;
-            } catch (error) {
-              isRepository = false;
-            }
-          });
-        } catch (error) {
-          isRepository = false;
-        }
+        });
       }
     });
   } catch (gitExtensionError) {
@@ -66,9 +52,21 @@ export async function activate(context: vscode.ExtensionContext) {
 }
 
 async function addNewGroup() {
+  console.log("Git state", git.state);
+  console.log("Number of repositories", git.repositories.length);
+  console.log(
+    "There is at least one repository",
+    git.repositories[0].state.HEAD?.name
+  );
+
+  if (git.repositories.length > 0) {
+    isRepository = true;
+    currentBranch = git.repositories[0].state.HEAD!.name;
+  }
+
   let branch = "";
   if (isRepository) {
-    branch = (await git.repositories[0].state.HEAD?.name) || "";
+    branch = currentBranch ?? "";
   }
 
   let name = await vscode.window.showInputBox({
@@ -76,6 +74,7 @@ async function addNewGroup() {
     placeHolder: "Name of the group",
     value: branch,
   });
+
   if (name && name.trim() !== "") {
     name = name.trim();
     if (fileGroups.existsGroup(name)) {
