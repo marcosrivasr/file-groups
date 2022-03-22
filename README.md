@@ -50,4 +50,5 @@ Fixes the Git integration, now when a workspace has Git enabled the extension wi
 
 ### 1.0.3
 
-Fixes the issue where sometimes the Git integration didn't work correctly to identify the current branch
+- Fixes the issue where sometimes the Git integration didn't work correctly to identify the current branch
+- Fixes an issue where once the data is saved and the editor is opened again the data don't load with all the methods for the classes. Now the data is correclty loaded with properties and methods
