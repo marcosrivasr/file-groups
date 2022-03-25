@@ -3,10 +3,9 @@
 import * as vscode from "vscode";
 import { GroupsDataProvider } from "./groupsDataProvider";
 import { commands } from "./constants/commands";
-import { API, GitErrorCodes, GitExtension } from "./types/git";
+import { GitExtension } from "./types/git";
 import GroupItem from "./groupItem";
 import TabItem from "./tabItem";
-import { TreeItemType } from "./types/types";
 
 let fileGroups: GroupsDataProvider;
 const gitExtension =
@@ -15,20 +14,13 @@ const git = gitExtension.getAPI(1);
 let isRepository = false;
 let currentBranch: string | undefined;
 
-export async function activate(context: vscode.ExtensionContext) {
+export function activate(context: vscode.ExtensionContext) {
   try {
-    git.onDidChangeState(async (e) => {
-      if (e === "initialized" && git.repositories.length > 0) {
-        git.repositories[0].state.onDidChange(() => {
-          const newBranch = git.repositories[0].state.HEAD?.name;
-          if (newBranch !== currentBranch) {
-            console.log("Change of branch");
-            currentBranch = newBranch;
-            fileGroups.changeGroup(newBranch!);
-          }
-          isRepository = true;
-        });
-      }
+    if (git.state === "initialized") {
+      configGitChanges("initialized");
+    }
+    git.onDidChangeState((e) => {
+      configGitChanges(e);
     });
   } catch (gitExtensionError) {
     console.log("Git Extension Error", gitExtensionError);
@@ -49,6 +41,21 @@ export async function activate(context: vscode.ExtensionContext) {
   ];
 
   context.subscriptions.concat(disposables);
+}
+
+function configGitChanges(e: string) {
+  console.log("on Change");
+  if (e === "initialized" && git.repositories.length > 0) {
+    git.repositories[0].state.onDidChange(() => {
+      const newBranch = git.repositories[0].state.HEAD?.name;
+      if (newBranch !== currentBranch) {
+        console.log("Change of branch");
+        currentBranch = newBranch;
+        fileGroups.changeGroup(newBranch!);
+      }
+      isRepository = true;
+    });
+  }
 }
 
 async function addNewGroup() {
